@@ -76,13 +76,16 @@ class UCLexer:
         # Identifiers
         'ID',
         # operators / delimiters
-        'PLUS', 'MINUS', 'TIMES', 'DIVIDE', 'MOD', 'ASSIGN', 'SEMI',
+        'PLUS', 'MINUS', 'TIMES', 'DIVIDE', 'MOD', 'SEMI',
         'LPAREN', 'RPAREN', 'LBRACE', 'RBRACE', 'LBRACKET', 'RBRACKET',
         'EQUALS', 'LTE', 'LT', 'GTE', 'GT', 'NE', 'AND', 'OR',
         'PLUSPLUS', 'MINUSMINUS',
 
         # unary operators
         'ADDRESS', 'NOT',
+
+        # assignments
+        'ASSIGN', 'TIMESASSIGN', 'DIVIDEASSIGN', 'MODASSIGN', 'PLUSASSIGN', 'MINUSASSIGN',
 
         'COMMA',
 
@@ -105,7 +108,6 @@ class UCLexer:
     t_TIMES = r'\*'
     t_DIVIDE = r'\/'
     t_MOD = r'\%'
-    t_ASSIGN = r'\='
     t_SEMI = r'\;'
     t_LPAREN = r'\('
     t_RPAREN = r'\)'
@@ -128,6 +130,14 @@ class UCLexer:
     t_ADDRESS = r'\&'
     t_NOT = r'\!'
 
+    # assignments
+    t_ASSIGN = r'\='
+    t_TIMESASSIGN = r'\*\='
+    t_DIVIDEASSIGN = r'\/\='
+    t_MODASSIGN = r'\%\='
+    t_PLUSASSIGN = r'\+\='
+    t_MINUSASSIGN = r'\-\='
+
     t_COMMA = r'\,'
 
     # Newlines
@@ -143,6 +153,9 @@ class UCLexer:
     def t_comment(self, t):
         r'/\*(.|\n)*?\*/'
         t.lexer.lineno += t.value.count('\n')
+
+    def t_linecomment(self, t):
+        r'//.*'
 
     def t_error(self, t):
         msg = "Illegal character %s" % repr(t.value[0])
