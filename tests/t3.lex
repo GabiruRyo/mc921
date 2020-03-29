@@ -1,7 +1,7 @@
 LexToken(INT,'int',1,0)
 LexToken(ID,'a',1,4)
 LexToken(ASSIGN,'=',1,5)
-LexToken(INT_CONST,'10',1,6)
+LexToken(INT_CONST,10,1,6)
 LexToken(SEMI,';',1,8)
 LexToken(INT,'int',2,10)
 LexToken(TIMES,'*',2,14)

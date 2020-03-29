@@ -90,7 +90,7 @@ class UCLexer:
         'COMMA',
 
         # constants
-        'INT_CONST', 'FLOAT_CONST',
+        'INT_CONST', 'FLOAT_CONST', 'CHAR_CONST', 'STRING_CONST',
 
     )
 
@@ -99,8 +99,26 @@ class UCLexer:
     #
     t_ignore = ' \t'
 
-    t_INT_CONST = r'[0-9]+'
-    t_FLOAT_CONST = r'([0-9]*\.[0-9]+)|([0-9]+\.[0-9]*)'
+    # constants
+    def t_FLOAT_CONST(self, t):
+        r'([0-9]*\.[0-9]+)|([0-9]+\.[0-9]*)'
+        t.value = float(t.value)
+        return t
+
+    def t_INT_CONST(self, t):
+        r'[0-9]+'
+        t.value = int(t.value)
+        return t
+
+    def t_CHAR_CONST(self, t):
+        r'\'(.|(\\[a-z]))\''
+        t.value = t.value[1:-1]
+        return t
+
+    def t_STRING_CONST(self, t):
+        r'\".*\"'
+        t.value = t.value[1:-1]
+        return t
 
     # operators / delimiters
     t_PLUS = r'\+'
