@@ -7,6 +7,10 @@ def _lex_err(msg, ln, co):
     print(f'Lexical error: {msg} at {ln}:{co}')
 
 
+class ParseError(Exception):
+    pass
+
+
 class UCParser:
     tokens = UCLexer.tokens
     precedence = (
@@ -30,7 +34,7 @@ class UCParser:
             debug=debug)
 
     def _parse_error(self, msg, coord):
-        raise Exception("{}: {}".format(coord, msg))
+        raise ParseError("{}: {}".format(coord, msg))
 
     def _fix_decl_name_type(self, decl, typename):
         """ Fixes a declaration. Modifies decl.
@@ -116,6 +120,17 @@ class UCParser:
             decl_tail.type = modifier_head
             return decl
 
+    def _token_coord(self, p, token_idx):
+        """ Returns the coordinates for the YaccProduction objet 'p' indexed
+            with 'token_idx'. The coordinate includes the 'lineno' and
+            'column'. Both follow the lex semantic, starting from 1.
+        """
+        last_cr = p.lexer.lexer.lexdata.rfind('\n', 0, p.lexpos(token_idx))
+        if last_cr < 0:
+            last_cr = -1
+        column = (p.lexpos(token_idx) - (last_cr))
+        return ast.Coord(p.lineno(token_idx), column)
+
     def p_program(self, p):
         """ program  : global_declaration_list
         """
@@ -147,3 +162,78 @@ class UCParser:
                              | declaration_list declaration
         """
         p[0] = p[1] + p[2] if len(p) == 3 else p[1]
+
+    def p_empty(self, p):
+        """ empty :
+        """
+        p[0] = None
+
+    def p_type_specifier(self, p):
+        """ type_specifier : VOID
+                           | CHAR
+                           | INT
+                           | FLOAT
+        """
+        p[0] = ast.Type([p[1]], self._token_coord(p, 1))
+
+    def p_binary_expression(self, p):
+        """ binary_expression   : cast_expression
+                                | binary_expression TIMES binary_expression
+                                | binary_expression DIVIDE binary_expression
+                                | binary_expression MOD binary_expression
+                                | binary_expression PLUS binary_expression
+                                | binary_expression MINUS binary_expression
+                                | binary_expression LT binary_expression
+                                | binary_expression LTE binary_expression
+                                | binary_expression GT binary_expression
+                                | binary_expression GTE binary_expression
+                                | binary_expression EQUALS binary_expression
+                                | binary_expression NE binary_expression
+                                | binary_expression AND binary_expression
+                                | binary_expression OR binary_expression
+        """
+        p[0] = p[1] if len(p) == 2 else ast.BinaryOp(p[2], p[1], p[3], p[1].coord)
+
+    def p_cast_expression_1(self, p):
+        """ cast_expression : unary_expression
+        """
+        p[0] = p[1]
+
+    def p_cast_expression_2(self, p):
+        """ cast_expression : LPAREN type_specifier RPAREN cast_expression
+        """
+        p[0] = ast.Cast(p[2], p[4], self._token_coord(p, 1))
+
+    def p_unary_expression_1(self, p):
+        """ unary_expression : postfix_expression
+        """
+        p[0] = p[1]
+
+    def p_unary_expression_2(self, p):
+        """ unary_expression : PLUSPLUS unary_expression
+                             | MINUSMINUS unary_expression
+                             | unary_operator cast_expression
+        """
+        return ast.UnaryOp(p[1], p[2], p[2].coord)
+
+    def p_postfix_expression_1(self, p):
+        """ postfix_expression : primary_expression
+        """
+        p[0] = p[1]
+
+    def p_postfix_expression_2(self, p):
+        """ postfix_expression : postfix_expression LBRACKET expression RBRACKET
+        """
+        # todo array ref
+
+    def p_postfix_expression_3(self, p):
+        """ postfix_expression : postfix_expression LPAREN argument_expression RPAREN
+                               | LPAREN RPAREN
+        """
+        # todo func call
+
+    def p_postfix_expression_4(self, p):
+        """ postfix_expression : postfix_expression PLUSPLUS
+                               | postfix_expression MINUSMINUS
+        """
+        p[0] = ast.UnaryOp('p' + p[2], p[1], p[1].coord)

@@ -210,3 +210,29 @@ class VarDecl(Node):
 
     def children(self):
         return tuple(('type', self.type))
+
+
+class Cast(Node):
+    __slots__ = ('type', 'expr', 'coord')
+    attr_names = tuple()
+
+    def __init__(self, type, expr, coord=None):
+        self.type = type
+        self.expr = expr
+        self.coord = coord
+
+    def children(self):
+        return ('type', self.type), ('expr', self.expr)
+
+
+class UnaryOp(Node):
+    __slots__ = ('op', 'expr', 'coord')
+    attr_names = ('op',)
+
+    def __init__(self, op, expr, coord=None):
+        self.op = op
+        self.expr = expr
+        self.coord = coord
+
+    def children(self):
+        return tuple(('expr', self.expr))
