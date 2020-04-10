@@ -11,6 +11,10 @@ def _repr(obj):
         return repr(obj)
 
 
+def _filter_none(*it):
+    return tuple(filter(lambda t: t[1] is not None, it))
+
+
 class Node:
     """
     Base class example for the AST nodes.
@@ -159,13 +163,17 @@ class Type(Node):
     def children(self):
         return tuple()
 
+    @classmethod
+    def build_void(cls, coord=None):
+        return Type(['void'], coord)
+
 
 class GlobalDecl(Node):
     __slots__ = ('decls', 'coord')
     attr_names = tuple()
 
     def __init__(self, decls, coord=None):
-        self.decls = decls if decls is not None else tuple()
+        self.decls = decls if decls is not None else []
         self.coord = coord
 
     def children(self):
@@ -183,7 +191,7 @@ class Decl(Node):
         self.coord = coord
 
     def children(self):
-        return ('name', self.name), ('type', self.type)
+        return _filter_none(('name', self.name), ('type', self.type))
 
 
 class FuncDecl(Node):
@@ -196,7 +204,7 @@ class FuncDecl(Node):
         self.coord = coord
 
     def children(self):
-        return ('args', self.args), ('type', self.type)
+        return _filter_none(('args', self.args), ('type', self.type))
 
 
 class VarDecl(Node):
@@ -209,7 +217,7 @@ class VarDecl(Node):
         self.coord = coord
 
     def children(self):
-        return tuple(('type', self.type))
+        return _filter_none(('type', self.type))
 
 
 class Cast(Node):
@@ -222,7 +230,7 @@ class Cast(Node):
         self.coord = coord
 
     def children(self):
-        return ('type', self.type), ('expr', self.expr)
+        return _filter_none(('type', self.type), ('expr', self.expr))
 
 
 class UnaryOp(Node):
@@ -235,4 +243,231 @@ class UnaryOp(Node):
         self.coord = coord
 
     def children(self):
-        return tuple(('expr', self.expr))
+        return _filter_none(('expr', self.expr))
+
+
+class ExprList(Node):
+    __slots__ = ('exprs', 'coord')
+    attr_names = tuple()
+
+    def __init__(self, exprs, coord=None):
+        self.exprs = exprs if exprs else []
+        self.coord = coord
+
+    def children(self):
+        return tuple(map(lambda expr: ('expr', expr), self.exprs))
+
+    @classmethod
+    def concat_exprs(cls, expr_base, expr):
+        if not isinstance(expr_base, cls):
+            expr_base = ExprList([expr_base], expr_base.coord)
+        expr_base.exprs.append(expr)
+
+
+class Assignment(Node):
+    __slots__ = ('op', 'lvalue', 'rvalue', 'coord')
+    attr_names = ('op',)
+
+    def __init__(self, op, lvalue, rvalue, coord=None):
+        self.op = op
+        self.lvalue = lvalue
+        self.rvalue = rvalue
+        self.coord = coord
+
+    def children(self):
+        return _filter_none(('lvalue', self.lvalue), ('rvalue', self.rvalue))
+
+
+class FuncDef(Node):
+    __slots__ = ('decl', 'param_decls', 'body', 'coord')
+    attr_names = tuple()
+
+    def __init__(self, decl, param_decls, body, coord=None):
+        self.decl = decl
+        self.param_decls = param_decls if param_decls else []
+        self.body = body
+        self.coord = coord
+
+    def children(self):
+        nodelist = [('decl', self.decl), ('body', self.body)]
+        for i, child in enumerate(self.param_decls):
+            nodelist.append(("param_decls[%d]" % i, child))
+        return tuple(nodelist)
+
+
+class FuncCall(Node):
+    __slots__ = ('name', 'args', 'coord')
+    attr_names = ()
+
+    def __init__(self, name, args, coord=None):
+        self.name = name
+        self.args = args
+        self.coord = coord
+
+    def children(self):
+        return _filter_none(('name', self.name), ('args', self.args))
+
+
+class ID(Node):
+    __slots__ = ('name', 'coord')
+    attr_names = ('name',)
+
+    def __init__(self, name, coord=None):
+        self.name = name
+        self.coord = coord
+
+    def children(self):
+        return tuple()
+
+
+class ArrayDecl(Node):
+    __slots__ = ('type', 'dim', 'coord')
+    attr_names = tuple()
+
+    def __init__(self, type, dim, coord=None):
+        self.type = type
+        self.dim = dim
+        self.coord = coord
+
+    def children(self):
+        return _filter_none(('type', self.type), ('dim', self.dim))
+
+
+class ArrayRef(Node):
+    __slots__ = ('name', 'subscript', 'coord')
+    attr_names = tuple()
+
+    def __init__(self, name, subscript, coord=None):
+        self.name = name
+        self.subscript = subscript
+        self.coord = coord
+
+    def children(self):
+        return _filter_none(('name', self.name), ('subscript', self.subscript))
+
+
+class Compound(Node):
+    __slots__ = ('block_items', 'coord')
+    attr_names = tuple()
+
+    def __init__(self, block_items, coord=None):
+        self.block_items = block_items if block_items else []
+        self.coord = coord
+
+    def children(self):
+        return tuple(map(lambda bi: ('block_items', bi), self.block_items))
+
+
+class If(Node):
+    __slots__ = ('cond', 'iftrue', 'iffalse', 'coord')
+    attr_names = tuple()
+
+    def __init__(self, cond, iftrue, iffalse, coord=None):
+        self.cond = cond
+        self.iftrue = iftrue
+        self.iffalse = iffalse
+        self.coord = coord
+
+    def children(self):
+        return _filter_none(('cond', self.cond), ('iftrue', self.iftrue), ('iffalse', self.iffalse))
+
+
+class While(Node):
+    __slots__ = ('cond', 'stmt', 'coord')
+    attr_names = tuple()
+
+    def __init__(self, cond, stmt, coord=None):
+        self.cond = cond
+        self.stmt = stmt
+        self.coord = coord
+
+    def children(self):
+        return _filter_none(('cond', self.cond), ('stmt', self.stmt))
+
+
+class For(Node):
+    __slots__ = ('init', 'cond', 'next', 'stmt', 'coord')
+    attr_names = tuple()
+
+    def __init__(self, init, cond, next, stmt, coord=None):
+        self.init = init
+        self.cond = cond
+        self.next = next
+        self.stmt = stmt
+        self.coord = coord
+
+    def children(self):
+        return _filter_none(
+            ('init', self.init), ('cond', self.cond),
+            ('next', self.next), ('stmt', self.stmt))
+
+
+class DeclList(Node):
+    __slots__ = ('decls', 'coord', '__weakref__')
+    attr_names = tuple()
+
+    def __init__(self, decls, coord=None):
+        self.decls = decls if decls else []
+        self.coord = coord
+
+    def children(self):
+        return tuple(map(lambda decl: ('decl', decl), self.decls))
+
+
+class EmptyStatement(Node):
+    __slots__ = ('coord', '__weakref__')
+    attr_names = tuple()
+
+    def __init__(self, coord=None):
+        self.coord = coord
+
+    def children(self):
+        return tuple()
+
+
+class Assert(Node):
+    __slots__ = ('expr', 'coord')
+    attr_names = ()
+
+    def __init__(self, expr, coord=None):
+        self.expr = expr
+        self.coord = coord
+
+    def children(self):
+        return _filter_none(('assert', self.expr))
+
+
+class Print(Node):
+    __slots__ = ('expr', 'coord')
+    attr_names = ()
+
+    def __init__(self, expr, coord=None):
+        self.expr = expr
+        self.coord = coord
+
+    def children(self):
+        return _filter_none(('print', self.expr))
+
+
+class Read(Node):
+    __slots__ = ('expr', 'coord')
+    attr_names = ()
+
+    def __init__(self, expr, coord=None):
+        self.expr = expr
+        self.coord = coord
+
+    def children(self):
+        return _filter_none(('read', self.expr))
+
+
+class InitList(Node):
+    __slots__ = ('exprs', 'coord')
+    attr_names = tuple()
+
+    def __init__(self, exprs, coord=None):
+        self.exprs = exprs
+        self.coord = coord
+
+    def children(self):
+        return tuple(map(lambda expr: ('expr', expr), self.exprs))
