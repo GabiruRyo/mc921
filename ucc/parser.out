@@ -1,0 +1,124 @@
+Created by PLY version 3.11 (http://www.dabeaz.com/ply)
+
+Unused terminals:
+
+    ADDRESS
+    AND
+    ASSERT
+    ASSIGN
+    BREAK
+    CHAR
+    CHAR_CONST
+    COMMA
+    DIVIDE
+    DIVIDEASSIGN
+    ELSE
+    EQUALS
+    FLOAT
+    FLOAT_CONST
+    FOR
+    GT
+    GTE
+    ID
+    IF
+    INT
+    INT_CONST
+    LBRACE
+    LBRACKET
+    LPAREN
+    LT
+    LTE
+    MINUS
+    MINUSASSIGN
+    MINUSMINUS
+    MOD
+    MODASSIGN
+    NE
+    NOT
+    OR
+    PLUS
+    PLUSASSIGN
+    PLUSPLUS
+    PRINT
+    RBRACE
+    RBRACKET
+    READ
+    RETURN
+    RPAREN
+    SEMI
+    STRING_CONST
+    TIMES
+    TIMESASSIGN
+    VOID
+    WHILE
+
+Grammar
+
+Rule 0     S' -> program
+Rule 1     program -> global_declaration_list
+Rule 2     global_declaration_list -> global_declaration
+Rule 3     global_declaration_list -> global_declaration_list global_declaration
+Rule 4     global_declaration -> declaration
+Rule 5     global_declaration -> function_definition
+
+Terminals, with rules where they appear
+
+ADDRESS              : 
+AND                  : 
+ASSERT               : 
+ASSIGN               : 
+BREAK                : 
+CHAR                 : 
+CHAR_CONST           : 
+COMMA                : 
+DIVIDE               : 
+DIVIDEASSIGN         : 
+ELSE                 : 
+EQUALS               : 
+FLOAT                : 
+FLOAT_CONST          : 
+FOR                  : 
+GT                   : 
+GTE                  : 
+ID                   : 
+IF                   : 
+INT                  : 
+INT_CONST            : 
+LBRACE               : 
+LBRACKET             : 
+LPAREN               : 
+LT                   : 
+LTE                  : 
+MINUS                : 
+MINUSASSIGN          : 
+MINUSMINUS           : 
+MOD                  : 
+MODASSIGN            : 
+NE                   : 
+NOT                  : 
+OR                   : 
+PLUS                 : 
+PLUSASSIGN           : 
+PLUSPLUS             : 
+PRINT                : 
+RBRACE               : 
+RBRACKET             : 
+READ                 : 
+RETURN               : 
+RPAREN               : 
+SEMI                 : 
+STRING_CONST         : 
+TIMES                : 
+TIMESASSIGN          : 
+VOID                 : 
+WHILE                : 
+error                : 
+
+Nonterminals, with rules where they appear
+
+declaration          : 4
+function_definition  : 5
+global_declaration   : 2 3
+global_declaration_list : 1 3
+program              : 0
+
