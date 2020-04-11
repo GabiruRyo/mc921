@@ -1,5 +1,5 @@
 from ply.yacc import yacc
-from lexer import UCLexer
+from .lexer import UCLexer
 import ast
 
 
@@ -339,6 +339,16 @@ class UCParser:
         """
         p[0] = ast.Read(p[3], self._token_coord(p, 1))
 
+    def p_jump_statement_1(self, p):
+        """ jump_statement  : BREAK SEMI
+        """
+        p[0] = ast.Break(self._token_coord(p, 1))
+
+    def p_jump_statement_2(self, p):
+        """ jump_statement  : RETURN expression_opt SEMI
+        """
+        p[0] = ast.Return(p[2] if len(p) == 4 else None, self._token_coord(p, 1))
+
     def p_statement(self, p):
         """ statement   : expression_statement
                         | selection_statement
@@ -514,3 +524,19 @@ class UCParser:
         """
         p[0] = ast.ID(p[1], self._token_coord(p, 1))
 
+    def p_parameter_list(self, p):
+        """ parameter_list : parameter_declaration
+                           | parameter_list COMMA parameter_declaration
+        """
+        if len(p) == 2:
+            p[0] = p[1]
+        else:
+            p[0] = ast.ParamList.concat_exprs(p[1], p[3])
+
+    def p_parameter_declaration(self, p):
+        """ parameter_declaration  : type_specifier declarator
+        """
+        p[0] = self._build_declarations(
+            p[1],
+            [dict(decl=p[2])]
+        )[0]

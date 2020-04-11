@@ -133,10 +133,7 @@ class BinaryOp(Node):
         self.coord = coord
 
     def children(self):
-        nodelist = []
-        if self.lvalue is not None: nodelist.append(("lvalue", self.lvalue))
-        if self.rvalue is not None: nodelist.append(("rvalue", self.rvalue))
-        return tuple(nodelist)
+        return _filter_none(('lvalue', self.lvalue), ('rvalue', self.rvalue))
 
 
 class Constant(Node):
@@ -471,3 +468,42 @@ class InitList(Node):
 
     def children(self):
         return tuple(map(lambda expr: ('expr', expr), self.exprs))
+
+
+class ParamList(Node):
+    __slots__ = ('params', 'coord')
+    attr_names = tuple()
+
+    def __init__(self, params, coord=None):
+        self.params = params if params else []
+        self.coord = coord
+
+    def children(self):
+        return tuple(map(lambda param: ('param', param), self.params))
+
+    @classmethod
+    def concat_params(cls, param_base, param):
+        if not isinstance(param_base, cls):
+            param_base = ExprList([param_base], param_base.coord)
+        param_base.params.append(param)
+
+
+class Break(Node):
+    __slots__ = ('coord', '__weakref__')
+
+    def __init__(self, coord=None):
+        self.coord = coord
+
+    def children(self):
+        return tuple()
+
+
+class Return(Node):
+    __slots__ = ('expr', 'coord')
+
+    def __init__(self, expr, coord=None):
+        self.expr = expr
+        self.coord = coord
+
+    def children(self):
+        return _filter_none(('expr', self.expr))
