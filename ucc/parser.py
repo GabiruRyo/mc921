@@ -1,5 +1,5 @@
 from ply.yacc import yacc
-from .lexer import UCLexer
+from lexer import UCLexer
 import ast
 
 
@@ -44,7 +44,7 @@ class UCParser:
         while not isinstance(type, ast.VarDecl):
             type = type.type
 
-        decl.name = type.declname
+        decl.name = type.name
 
         # The typename is a list of types. If any type in this
         # list isn't an Type, it must be the only
@@ -69,7 +69,7 @@ class UCParser:
             # At this point, we know that typename is a list of Type
             # nodes. Concatenate all the names into a single list.
             type.type = ast.Type(
-                [typename.names[0]],
+                [typename.types[0]],
                 coord=typename.coord)
         return decl
 
@@ -139,6 +139,7 @@ class UCParser:
             decls=[dict(decl=decl, init=None)])[0]
 
         return ast.FuncDef(
+            spec=spec,
             decl=declaration,
             param_decls=param_decls,
             body=body,
@@ -247,7 +248,7 @@ class UCParser:
     def p_direct_declarator_1(self, p):
         """ direct_declarator : identifier
         """
-        p[0] = p[1]
+        p[0] = ast.VarDecl(p[1], None, self._token_coord(p, 1))
 
     def p_direct_declarator_2(self, p):
         """ direct_declarator : LPAREN declarator RPAREN
@@ -524,6 +525,15 @@ class UCParser:
         """
         p[0] = ast.ID(p[1], self._token_coord(p, 1))
 
+    def p_identifier_list(self, p):
+        """ identifier_list : identifier
+                            | identifier_list COMMA identifier
+        """
+        if len(p) == 2:
+            p[0] = ast.ParamList(p[1], p[1].coord)
+        else:
+            p[0] = ast.ParamList.concat_params(p[1], p[3])
+
     def p_parameter_list(self, p):
         """ parameter_list : parameter_declaration
                            | parameter_list COMMA parameter_declaration
@@ -531,7 +541,7 @@ class UCParser:
         if len(p) == 2:
             p[0] = p[1]
         else:
-            p[0] = ast.ParamList.concat_exprs(p[1], p[3])
+            p[0] = ast.ParamList.concat_params(p[1], p[3])
 
     def p_parameter_declaration(self, p):
         """ parameter_declaration  : type_specifier declarator
@@ -540,3 +550,9 @@ class UCParser:
             p[1],
             [dict(decl=p[2])]
         )[0]
+
+    def p_error(self, p):
+        if p:
+            print(f'Error near the symbol {p.value}')
+        else:
+            print('Error at the end of input')
