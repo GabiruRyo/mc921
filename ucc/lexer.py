@@ -117,7 +117,7 @@ class UCLexer:
 
     def t_STRING_CONST(self, t):
         r'\".*\"'
-        t.value = t.value[1:-1]
+        t.value = t.value
         return t
 
     # operators / delimiters

@@ -413,7 +413,7 @@ class UCParser:
                              | MINUSMINUS unary_expression
                              | unary_operator cast_expression
         """
-        return ast.UnaryOp(p[1], p[2], p[2].coord)
+        p[0] = ast.UnaryOp(p[1], p[2], p[2].coord)
 
     def p_unary_operator(self, p):
         """ unary_operator : ADDRESS
@@ -497,7 +497,7 @@ class UCParser:
         if len(p) == 2:
             p[0] = p[1]
         else:
-            p[0] = ast.Assignment(p[2], p[1], p[3], self._token_coord(p[1], 1))
+            p[0] = ast.Assignment(p[2], p[1], p[3], p[1].coord)
 
     def p_assignment_operator(self, p):
         """ assignment_operator : ASSIGN
@@ -539,7 +539,7 @@ class UCParser:
                            | parameter_list COMMA parameter_declaration
         """
         if len(p) == 2:
-            p[0] = p[1]
+            p[0] = ast.ParamList([p[1]], p[1].coord)
         else:
             p[0] = ast.ParamList.concat_params(p[1], p[3])
 

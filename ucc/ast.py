@@ -262,6 +262,7 @@ class ExprList(Node):
         if not isinstance(expr_base, cls):
             expr_base = cls([expr_base], expr_base.coord)
         expr_base.exprs.append(expr)
+        return expr_base
 
 
 class Assignment(Node):
@@ -490,6 +491,7 @@ class ParamList(Node):
         if not isinstance(param_base, cls):
             param_base = cls([param_base], param_base.coord)
         param_base.params.append(param)
+        return param_base
 
 
 class Break(Node):
