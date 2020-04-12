@@ -436,7 +436,7 @@ class UCParser:
 
     def p_postfix_expression_3(self, p):
         """ postfix_expression : postfix_expression LPAREN argument_expression RPAREN
-                               | LPAREN RPAREN
+                               | postfix_expression LPAREN RPAREN
         """
         p[0] = ast.FuncCall(p[1], p[3] if len(p) > 4 else None, p[1].coord)
 

@@ -116,7 +116,7 @@ class UCLexer:
         return t
 
     def t_STRING_CONST(self, t):
-        r'\".*\"'
+        r'\"[^"]*\"'
         t.value = t.value
         return t
 
