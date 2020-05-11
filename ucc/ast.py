@@ -36,7 +36,7 @@ class Node:
         result = self.__class__.__name__ + '('
         indent = ''
         separator = ''
-        for name in self.__slots__[:-2]:
+        for name in self.__slots__[:-1]:
             result += separator
             result += indent
             result += name + '=' + (
@@ -133,10 +133,7 @@ class BinaryOp(Node):
         self.coord = coord
 
     def children(self):
-        nodelist = []
-        if self.lvalue is not None: nodelist.append(("lvalue", self.lvalue))
-        if self.rvalue is not None: nodelist.append(("rvalue", self.rvalue))
-        return tuple(nodelist)
+        return _filter_none(('lvalue', self.lvalue), ('rvalue', self.rvalue))
 
 
 class Constant(Node):
@@ -162,6 +159,9 @@ class Type(Node):
 
     def children(self):
         return tuple()
+
+    def __iter__(self):
+        yield self
 
     @classmethod
     def build_void(cls, coord=None):
@@ -191,7 +191,7 @@ class Decl(Node):
         self.coord = coord
 
     def children(self):
-        return _filter_none(('name', self.name), ('type', self.type))
+        return _filter_none(('type', self.type), ('init', self.init))
 
 
 class FuncDecl(Node):
@@ -260,8 +260,9 @@ class ExprList(Node):
     @classmethod
     def concat_exprs(cls, expr_base, expr):
         if not isinstance(expr_base, cls):
-            expr_base = ExprList([expr_base], expr_base.coord)
+            expr_base = cls([expr_base], expr_base.coord)
         expr_base.exprs.append(expr)
+        return expr_base
 
 
 class Assignment(Node):
@@ -279,17 +280,18 @@ class Assignment(Node):
 
 
 class FuncDef(Node):
-    __slots__ = ('decl', 'param_decls', 'body', 'coord')
+    __slots__ = ('spec', 'decl', 'param_decls', 'body', 'coord')
     attr_names = tuple()
 
-    def __init__(self, decl, param_decls, body, coord=None):
+    def __init__(self, spec, decl, param_decls, body, coord=None):
+        self.spec = spec
         self.decl = decl
         self.param_decls = param_decls if param_decls else []
         self.body = body
         self.coord = coord
 
     def children(self):
-        nodelist = [('decl', self.decl), ('body', self.body)]
+        nodelist = [('spec', self.spec), ('decl', self.decl), ('body', self.body)]
         for i, child in enumerate(self.param_decls):
             nodelist.append(("param_decls[%d]" % i, child))
         return tuple(nodelist)
@@ -471,3 +473,45 @@ class InitList(Node):
 
     def children(self):
         return tuple(map(lambda expr: ('expr', expr), self.exprs))
+
+
+class ParamList(Node):
+    __slots__ = ('params', 'coord')
+    attr_names = tuple()
+
+    def __init__(self, params, coord=None):
+        self.params = params if params else []
+        self.coord = coord
+
+    def children(self):
+        return tuple(map(lambda param: ('param', param), self.params))
+
+    @classmethod
+    def concat_params(cls, param_base, param):
+        if not isinstance(param_base, cls):
+            param_base = cls([param_base], param_base.coord)
+        param_base.params.append(param)
+        return param_base
+
+
+class Break(Node):
+    __slots__ = ('coord',)
+    attr_names = tuple()
+
+    def __init__(self, coord=None):
+        self.coord = coord
+
+    def children(self):
+        return tuple()
+
+
+class Return(Node):
+    __slots__ = ('expr', 'coord')
+    attr_names = tuple()
+
+    def __init__(self, expr, coord=None):
+        self.expr = expr
+        self.coord = coord
+
+    def children(self):
+        return _filter_none(('expr', self.expr))

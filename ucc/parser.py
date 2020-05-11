@@ -44,7 +44,7 @@ class UCParser:
         while not isinstance(type, ast.VarDecl):
             type = type.type
 
-        decl.name = type.declname
+        decl.name = type.name
 
         # The typename is a list of types. If any type in this
         # list isn't an Type, it must be the only
@@ -69,7 +69,7 @@ class UCParser:
             # At this point, we know that typename is a list of Type
             # nodes. Concatenate all the names into a single list.
             type.type = ast.Type(
-                [typename.names[0]],
+                [typename.types[0]],
                 coord=typename.coord)
         return decl
 
@@ -139,6 +139,7 @@ class UCParser:
             decls=[dict(decl=decl, init=None)])[0]
 
         return ast.FuncDef(
+            spec=spec,
             decl=declaration,
             param_decls=param_decls,
             body=body,
@@ -247,7 +248,7 @@ class UCParser:
     def p_direct_declarator_1(self, p):
         """ direct_declarator : identifier
         """
-        p[0] = p[1]
+        p[0] = ast.VarDecl(p[1], None, self._token_coord(p, 1))
 
     def p_direct_declarator_2(self, p):
         """ direct_declarator : LPAREN declarator RPAREN
@@ -339,6 +340,16 @@ class UCParser:
         """
         p[0] = ast.Read(p[3], self._token_coord(p, 1))
 
+    def p_jump_statement_1(self, p):
+        """ jump_statement  : BREAK SEMI
+        """
+        p[0] = ast.Break(self._token_coord(p, 1))
+
+    def p_jump_statement_2(self, p):
+        """ jump_statement  : RETURN expression_opt SEMI
+        """
+        p[0] = ast.Return(p[2] if len(p) == 4 else None, self._token_coord(p, 1))
+
     def p_statement(self, p):
         """ statement   : expression_statement
                         | selection_statement
@@ -402,7 +413,7 @@ class UCParser:
                              | MINUSMINUS unary_expression
                              | unary_operator cast_expression
         """
-        return ast.UnaryOp(p[1], p[2], p[2].coord)
+        p[0] = ast.UnaryOp(p[1], p[2], p[2].coord)
 
     def p_unary_operator(self, p):
         """ unary_operator : ADDRESS
@@ -425,7 +436,7 @@ class UCParser:
 
     def p_postfix_expression_3(self, p):
         """ postfix_expression : postfix_expression LPAREN argument_expression RPAREN
-                               | LPAREN RPAREN
+                               | postfix_expression LPAREN RPAREN
         """
         p[0] = ast.FuncCall(p[1], p[3] if len(p) > 4 else None, p[1].coord)
 
@@ -486,7 +497,7 @@ class UCParser:
         if len(p) == 2:
             p[0] = p[1]
         else:
-            p[0] = ast.Assignment(p[2], p[1], p[3], self._token_coord(p[1], 1))
+            p[0] = ast.Assignment(p[2], p[1], p[3], p[1].coord)
 
     def p_assignment_operator(self, p):
         """ assignment_operator : ASSIGN
@@ -513,3 +524,35 @@ class UCParser:
         """ identifier : ID
         """
         p[0] = ast.ID(p[1], self._token_coord(p, 1))
+
+    def p_identifier_list(self, p):
+        """ identifier_list : identifier
+                            | identifier_list COMMA identifier
+        """
+        if len(p) == 2:
+            p[0] = ast.ParamList(p[1], p[1].coord)
+        else:
+            p[0] = ast.ParamList.concat_params(p[1], p[3])
+
+    def p_parameter_list(self, p):
+        """ parameter_list : parameter_declaration
+                           | parameter_list COMMA parameter_declaration
+        """
+        if len(p) == 2:
+            p[0] = ast.ParamList([p[1]], p[1].coord)
+        else:
+            p[0] = ast.ParamList.concat_params(p[1], p[3])
+
+    def p_parameter_declaration(self, p):
+        """ parameter_declaration  : type_specifier declarator
+        """
+        p[0] = self._build_declarations(
+            p[1],
+            [dict(decl=p[2])]
+        )[0]
+
+    def p_error(self, p):
+        if p:
+            print(f'Error near the symbol {p.value}')
+        else:
+            print('Error at the end of input')

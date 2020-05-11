@@ -1,0 +1,9 @@
+Program: 
+    GlobalDecl: 
+        Decl: ID(name='a'  )
+            ArrayDecl: 
+                ArrayDecl: 
+                    VarDecl: 
+                        Type: ['int']   @ 1:1
+                    Constant: int, 20   @ 1:11
+                Constant: int, 10   @ 1:7
