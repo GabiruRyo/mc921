@@ -41,7 +41,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 1,
+   "execution_count": null,
    "metadata": {},
    "outputs": [],
    "source": [
@@ -55,7 +55,8 @@
    "metadata": {},
    "outputs": [],
    "source": [
-    "# integer constants\n"
+    "# integer constants\n",
+    "int_const = r'0|[1-9][0-9]*'"
    ]
   },
   {
@@ -64,7 +65,8 @@
    "metadata": {},
    "outputs": [],
    "source": [
-    "# floating constants\n"
+    "# floating constants\n",
+    "float_const = r'([0-9]*\\.[0-9]+)|([0-9]+\\.)' "
    ]
   },
   {
@@ -73,7 +75,8 @@
    "metadata": {},
    "outputs": [],
    "source": [
-    "# Comments in C-Style /* ... */\n"
+    "# Comments in C-Style /* ... */\n",
+    "ccomment = r'/\\*(.|\\n)*?\\*/'"
    ]
   },
   {
@@ -82,7 +85,8 @@
    "metadata": {},
    "outputs": [],
    "source": [
-    "# Unterminated C-style comment\n"
+    "# Unterminated C-style comment\n",
+    "uccomment = r'/\\*(.|\\n)*$'"
    ]
   },
   {
@@ -91,25 +95,43 @@
    "metadata": {},
    "outputs": [],
    "source": [
-    "# C++-style comment (//...)\n"
+    "# C++-style comment (//...)\n",
+    "cppcomment = r'//.*\\n'"
    ]
   },
   {
    "cell_type": "code",
-   "execution_count": 3,
+   "execution_count": null,
    "metadata": {},
    "outputs": [],
    "source": [
-    "# string_literal\n"
+    "# string_literal\n",
+    "string_literal = r'\".*?\"'"
    ]
   },
   {
    "cell_type": "code",
-   "execution_count": 4,
+   "execution_count": null,
    "metadata": {},
    "outputs": [],
    "source": [
-    "# unmatched_quote\n"
+    "# unmatched_quote\n",
+    "unquote = r'\".*$'"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# testing\n",
+    "import re\n",
+    "b = re.match(ccomment, \"/***/\")\n",
+    "if b:\n",
+    "    pass\n",
+    "else:\n",
+    "    print(\"Erro.\")"
    ]
   },
   {
@@ -143,7 +165,11 @@
   },
   {
    "cell_type": "code",
+<<<<<<< HEAD
    "execution_count": 1,
+=======
+   "execution_count": null,
+>>>>>>> c93e4b48043b4d01877860d3304347465ee02c05
    "metadata": {},
    "outputs": [],
    "source": [
@@ -209,6 +235,7 @@
   },
   {
    "cell_type": "code",
+<<<<<<< HEAD
    "execution_count": 2,
    "metadata": {},
    "outputs": [
@@ -220,6 +247,11 @@
      ]
     }
    ],
+=======
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+>>>>>>> c93e4b48043b4d01877860d3304347465ee02c05
    "source": [
     "inp_program = list('abcabdc')\n",
     "print(d.run_with_input_list(inp_program));"
@@ -227,6 +259,7 @@
   },
   {
    "cell_type": "code",
+<<<<<<< HEAD
    "execution_count": 3,
    "metadata": {},
    "outputs": [
@@ -238,6 +271,11 @@
      ]
     }
    ],
+=======
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+>>>>>>> c93e4b48043b4d01877860d3304347465ee02c05
    "source": [
     "inp_program = list('abcdabcdabcd');\n",
     "print(d.run_with_input_list(inp_program));"
@@ -397,9 +435,9 @@
    "source": [
     "Literals:\n",
     "```\n",
-    "    ICONST : 123\n",
-    "    FCONST : 1.234\n",
-    "    SCONST : \"Hello World\\n\"\n",
+    "    INT_CONST : 123\n",
+    "    FLOAT_CONST : 1.234\n",
+    "    STRING_LITERAL : \"Hello World\\n\"\n",
     "```\n"
    ]
   },
@@ -422,8 +460,142 @@
     "```\n",
     "     lineno: Unterminated string\n",
     "     lineno: Unterminated comment\n",
-    "     lineno: Bad string escape code ’\\..’\n",
     "```"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Lex Skeleton"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import ply.lex as lex\n",
+    "\n",
+    "\n",
+    "class UCLexer():\n",
+    "    \"\"\" A lexer for the uC language. After building it, set the\n",
+    "        input text with input(), and call token() to get new\n",
+    "        tokens.\n",
+    "    \"\"\"\n",
+    "    def __init__(self, error_func):\n",
+    "        \"\"\" Create a new Lexer.\n",
+    "            An error function. Will be called with an error\n",
+    "            message, line and column as arguments, in case of\n",
+    "            an error during lexing.\n",
+    "        \"\"\"\n",
+    "        self.error_func = error_func\n",
+    "        self.filename = ''\n",
+    "\n",
+    "        # Keeps track of the last token returned from self.token()\n",
+    "        self.last_token = None\n",
+    "\n",
+    "    def build(self, **kwargs):\n",
+    "        \"\"\" Builds the lexer from the specification. Must be\n",
+    "            called after the lexer object is created.\n",
+    "\n",
+    "            This method exists separately, because the PLY\n",
+    "            manual warns against calling lex.lex inside __init__\n",
+    "        \"\"\"\n",
+    "        self.lexer = lex.lex(object=self, **kwargs)\n",
+    "\n",
+    "    def reset_lineno(self):\n",
+    "        \"\"\" Resets the internal line number counter of the lexer.\n",
+    "        \"\"\"\n",
+    "        self.lexer.lineno = 1\n",
+    "\n",
+    "    def input(self, text):\n",
+    "        self.lexer.input(text)\n",
+    "\n",
+    "    def token(self):\n",
+    "        self.last_token = self.lexer.token()\n",
+    "        return self.last_token\n",
+    "\n",
+    "    def find_tok_column(self, token):\n",
+    "        \"\"\" Find the column of the token in its line.\n",
+    "        \"\"\"\n",
+    "        last_cr = self.lexer.lexdata.rfind('\\n', 0, token.lexpos)\n",
+    "        return token.lexpos - last_cr\n",
+    "\n",
+    "    # Internal auxiliary methods\n",
+    "    def _error(self, msg, token):\n",
+    "        location = self._make_tok_location(token)\n",
+    "        self.error_func(msg, location[0], location[1])\n",
+    "        self.lexer.skip(1)\n",
+    "\n",
+    "    def _make_tok_location(self, token):\n",
+    "        return (token.lineno, self.find_tok_column(token))\n",
+    "\n",
+    "    # Reserved keywords\n",
+    "    keywords = (\n",
+    "        'ASSERT', 'BREAK', 'CHAR', 'ELSE', 'FLOAT', 'FOR', 'IF',\n",
+    "        'INT', 'PRINT', 'READ', 'RETURN', 'VOID', 'WHILE',\n",
+    "    )\n",
+    "\n",
+    "    keyword_map = {}\n",
+    "    for keyword in keywords:\n",
+    "        keyword_map[keyword.lower()] = keyword\n",
+    "\n",
+    "    #\n",
+    "    # All the tokens recognized by the lexer\n",
+    "    #\n",
+    "    tokens = keywords + (\n",
+    "        # Identifiers\n",
+    "        'ID',\n",
+    "\n",
+    "        # constants\n",
+    "        'INT_CONST', 'FLOAT_CONST',\n",
+    "\n",
+    "    )\n",
+    "\n",
+    "    #\n",
+    "    # Rules\n",
+    "    #\n",
+    "    t_ignore = ' \\t'\n",
+    "\n",
+    "    # Newlines\n",
+    "    def t_NEWLINE(self, t):\n",
+    "        r'\\n+'\n",
+    "        t.lexer.lineno += t.value.count(\"\\n\")\n",
+    "\n",
+    "    def t_ID(self, t):\n",
+    "        r'[a-zA-Z_][0-9a-zA-Z_]*'\n",
+    "        t.type = self.keyword_map.get(t.value, \"ID\")\n",
+    "        return t\n",
+    "\n",
+    "    def t_comment(self, t):\n",
+    "        r'/\\*(.|\\n)*?\\*/'\n",
+    "        t.lexer.lineno += t.value.count('\\n')\n",
+    "\n",
+    "    def t_error(self, t):\n",
+    "        msg = \"Illegal character %s\" % repr(t.value[0])\n",
+    "        self._error(msg, t)\n",
+    "\n",
+    "    # Scanner (used only for test)\n",
+    "    def scan(self, data):\n",
+    "        self.lexer.input(data)\n",
+    "        while True:\n",
+    "            tok = self.lexer.token()\n",
+    "            if not tok:\n",
+    "                break\n",
+    "            print(tok)\n",
+    "\n",
+    "if __name__ == '__main__':\n",
+    "\n",
+    "    import sys\n",
+    "\n",
+    "    def print_error(msg, x, y):\n",
+    "        print(\"Lexical error: %s at %d:%d\" % (msg, x, y))\n",
+    "\n",
+    "    m = UCLexer(print_error)\n",
+    "    m.build()  # Build the lexer\n",
+    "    m.scan(open(sys.argv[1]).read())  # print tokens"
    ]
   },
   {
@@ -466,7 +638,7 @@
     "LexToken(INT,'int',2,14)\n",
     "LexToken(ID,'j',2,18)\n",
     "LexToken(EQUALS,'=',2,20)\n",
-    "LexToken(ICONST,'3',2,22)\n",
+    "LexToken(INT_CONST,'3',2,22)\n",
     "LexToken(SEMI,';',2,23)\n",
     "LexToken(INT,'int',3,25)\n",
     "LexToken(ID,'main',3,29)\n",
@@ -481,19 +653,19 @@
     "LexToken(INT,'int',5,54)\n",
     "LexToken(ID,'k',5,58)\n",
     "LexToken(EQUALS,'=',5,60)\n",
-    "LexToken(ICONST,'3',5,62)\n",
+    "LexToken(INT_CONST,'3',5,62)\n",
     "LexToken(SEMI,';',5,63)\n",
     "LexToken(INT,'int',6,67)\n",
     "LexToken(ID,'p',6,71)\n",
     "LexToken(EQUALS,'=',6,73)\n",
-    "LexToken(ICONST,'2',6,75)\n",
+    "LexToken(INT_CONST,'2',6,75)\n",
     "LexToken(TIMES,'*',6,77)\n",
     "LexToken(ID,'j',6,79)\n",
     "LexToken(SEMI,';',6,80)\n",
     "LexToken(ASSERT,'assert',7,84)\n",
     "LexToken(ID,'p',7,91)\n",
     "LexToken(EQ,'==',7,93)\n",
-    "LexToken(ICONST,'2',7,96)\n",
+    "LexToken(INT_CONST,'2',7,96)\n",
     "LexToken(TIMES,'*',7,98)\n",
     "LexToken(ID,'i',7,100)\n",
     "LexToken(SEMI,';',7,101)\n",
@@ -529,7 +701,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 3,
+   "execution_count": null,
    "metadata": {},
    "outputs": [],
    "source": [
@@ -553,12 +725,12 @@
    "source": [
     "In the body of each rule, create an appropriate AST node and assign it to p[0] as shown above.\n",
     "\n",
-    "For the purposes of lineno number tracking, you should assign a line number to each AST node as appropriate. To do this, I suggest pulling the line number off of any nearby terminal symbol. For example:"
+    "For the purposes of lineno number tracking, you should assign a line number to each AST node as appropriate. See http://www.dabeaz.com/ply/ply.html#ply_nn33. To do this, I suggest pulling the line number off of any nearby terminal symbol. For example:"
    ]
   },
   {
    "cell_type": "code",
-   "execution_count": 4,
+   "execution_count": null,
    "metadata": {},
    "outputs": [],
    "source": [
@@ -577,52 +749,57 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 6,
+   "execution_count": null,
    "metadata": {},
    "outputs": [],
    "source": [
     "class Node(object):\n",
     "    \"\"\"\n",
-    "    Base class example for the AST nodes.  Each node is expected to\n",
-    "    define the _fields attribute which lists the names of stored\n",
-    "    attributes.   The __init__() method below takes positional\n",
-    "    arguments and assigns them to the appropriate fields.  Any\n",
-    "    additional arguments specified as keywords are also assigned.\n",
+    "    Base class example for the AST nodes.\n",
+    "    \n",
+    "    By default, instances of classes have a dictionary for attribute storage.\n",
+    "    This wastes space for objects having very few instance variables.\n",
+    "    The space consumption can become acute when creating large numbers of instances.\n",
+    "\n",
+    "    The default can be overridden by defining __slots__ in a class definition.\n",
+    "    The __slots__ declaration takes a sequence of instance variables and reserves\n",
+    "    just enough space in each instance to hold a value for each variable.\n",
+    "    Space is saved because __dict__ is not created for each instance.\n",
     "    \"\"\"\n",
-    "    _fields = []\n",
-    "    def __init__(self, *args, **kwargs):\n",
-    "        assert len(args) == len(self._fields)\n",
-    "        for name,value in zip(self._fields,args):\n",
-    "            setattr(self,name,value)\n",
-    "        # Assign additional keyword arguments if supplied\n",
-    "        for name,value in kwargs.items():\n",
-    "            setattr(self,name,value)"
+    "    __slots__ = ()\n",
+    "    \n",
+    "    def children(self):\n",
+    "        \"\"\" A sequence of all children that are Nodes. \"\"\"\n",
+    "        pass"
    ]
   },
   {
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "For each of specific AST nodes, you need to add the appropriate\n",
-    "```\n",
-    "_fields = []\n",
-    "```\n",
-    "specification that indicates what fields are to be stored: "
+    "For each of specific AST nodes, you need to add the appropriate ```__slots__``` specification that indicates what fields are to be stored:"
    ]
   },
   {
    "cell_type": "code",
-   "execution_count": 7,
+   "execution_count": null,
    "metadata": {},
    "outputs": [],
    "source": [
-    "# This is the top of the AST, representing a uC program (a\n",
-    "# translation unit in K&R jargon). It contains a list of\n",
-    "# global-declaration's, which is either declarations (Decl),\n",
-    "# or function definitions (FuncDef).\n",
     "class Program(Node):\n",
-    "    _fields = ['decls']\n",
-    "    "
+    "    __slots__ = ('gdecls', 'coord')\n",
+    "    \n",
+    "    def __init__(self, gdecls, coord=None):\n",
+    "        self.gdecls = gdecls\n",
+    "        self.coord = coord\n",
+    "\n",
+    "    def children(self):\n",
+    "        nodelist = []\n",
+    "        for i, child in enumerate(self.gdecls or []):\n",
+    "            nodelist.append((\"gdecls[%d]\" % i, child))\n",
+    "        return tuple(nodelist)\n",
+    "\n",
+    "    attr_names = ()"
    ]
   },
   {
@@ -634,12 +811,54 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 8,
+   "execution_count": null,
    "metadata": {},
    "outputs": [],
    "source": [
     "class BinaryOp(Node):\n",
-    "    _fields = ['lvalue', 'op', 'rvalue']"
+    "    __slots__ = ('op', 'lvalue', 'rvalue', 'coord')\n",
+    "    \n",
+    "    def __init__(self, op, left, right, coord=None):\n",
+    "        self.op = op\n",
+    "        self.lvalue = left\n",
+    "        self.rvalue = right\n",
+    "        self.coord = coord\n",
+    "\n",
+    "    def children(self):\n",
+    "        nodelist = []\n",
+    "        if self.lvalue is not None: nodelist.append((\"lvalue\", self.lvalue))\n",
+    "        if self.rvalue is not None: nodelist.append((\"rvalue\", self.rvalue))\n",
+    "        return tuple(nodelist)\n",
+    "\n",
+    "    attr_names = ('op', )"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "For Constant objects, you might store the type and value, like this:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "class Constant(Node):\n",
+    "    __slots__ = ('type', 'value', 'coord')\n",
+    "    \n",
+    "    def __init__(self, type, value, coord=None):\n",
+    "        self.type = type\n",
+    "        self.value = value\n",
+    "        self.coord = coord\n",
+    "\n",
+    "    def children(self):\n",
+    "        nodelist = []\n",
+    "        return tuple(nodelist)\n",
+    "\n",
+    "    attr_names = ('type', 'value', )"
    ]
   },
   {
@@ -655,82 +874,9 @@
    "source": [
     "## AST node classes\n",
     "\n",
-    "The list below defines the AST node classes that must be used in uCParser:\n",
+    "The list below defines the AST node classes and expected attribute names that must be used in uCParser:\n",
     "\n",
-    "ArrayDecl, ArrayRef, Assert, Assignment, BinaryOp, Break, Cast, Compound, CompoundLiteral, Constant, Decl, DeclList, EmptyStatement, ExprList, For, FuncCall, FuncDecl, FuncDef, GlobalDecl, ID, If, InitList, ParamList, Print, Program, PtrDecl, Read, Return, Type, VarDecl, UnaryOp, While."
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "metadata": {},
-   "source": [
-    "## Visiting the AST\n",
-    "The following classes for visiting the AST are taken from Python’s ast module:"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 2,
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "class NodeVisitor(object):\n",
-    "    \"\"\" A base NodeVisitor class for visiting uc_ast nodes.\n",
-    "        Subclass it and define your own visit_XXX methods, where\n",
-    "        XXX is the class name you want to visit with these\n",
-    "        methods.\n",
-    "\n",
-    "        For example:\n",
-    "\n",
-    "        class ConstantVisitor(NodeVisitor):\n",
-    "            def __init__(self):\n",
-    "                self.values = []\n",
-    "\n",
-    "            def visit_Constant(self, node):\n",
-    "                self.values.append(node.value)\n",
-    "\n",
-    "        Creates a list of values of all the constant nodes\n",
-    "        encountered below the given node. To use it:\n",
-    "\n",
-    "        cv = ConstantVisitor()\n",
-    "        cv.visit(node)\n",
-    "\n",
-    "        Notes:\n",
-    "\n",
-    "        *   generic_visit() will be called for AST nodes for which\n",
-    "            no visit_XXX method was defined.\n",
-    "        *   The children of nodes for which a visit_XXX was\n",
-    "            defined will not be visited - if you need this, call\n",
-    "            generic_visit() on the node.\n",
-    "            You can use:\n",
-    "                NodeVisitor.generic_visit(self, node)\n",
-    "        *   Modeled after Python's own AST visiting facilities\n",
-    "            (the ast module of Python 3.0)\n",
-    "    \"\"\"\n",
-    "\n",
-    "    _method_cache = None\n",
-    "\n",
-    "    def visit(self, node):\n",
-    "        \"\"\" Visit a node.\n",
-    "        \"\"\"\n",
-    "\n",
-    "        if self._method_cache is None:\n",
-    "            self._method_cache = {}\n",
-    "\n",
-    "        visitor = self._method_cache.get(node.__class__.__name__, None)\n",
-    "        if visitor is None:\n",
-    "            method = 'visit_' + node.__class__.__name__\n",
-    "            visitor = getattr(self, method, self.generic_visit)\n",
-    "            self._method_cache[node.__class__.__name__] = visitor\n",
-    "\n",
-    "        return visitor(node)\n",
-    "\n",
-    "    def generic_visit(self, node):\n",
-    "        \"\"\" Called if no explicit visitor function exists for a\n",
-    "            node. Implements preorder visiting of the node.\n",
-    "        \"\"\"\n",
-    "        for c in node:\n",
-    "            self.visit(c)"
+    "ArrayDecl ( ), ArrayRef ( ), Assert ( ), Assignment (op), BinaryOp (op), Break ( ), Cast ( ), Compound ( ), Constant (type, value), Decl (name), DeclList ( ), EmptyStatement ( ), ExprList ( ), For ( ), FuncCall ( ), FuncDecl ( ), FuncDef ( ), GlobalDecl ( ), ID (name), If ( ), InitList ( ), ParamList ( ), Print ( ), Program ( ), PtrDecl ( ), Read ( ), Return ( ), Type (names), VarDecl (), UnaryOp (op), While ( )."
    ]
   },
   {
@@ -779,26 +925,26 @@
     "Program: \n",
     "    GlobalDecl: \n",
     "        Decl: ID(name='j'  )\n",
-    "            VarDecl: ID(name='j'  )\n",
+    "            VarDecl:\n",
     "                Type: ['int']   @ 2:1\n",
     "            Constant: int, 3   @ 2:9\n",
     "    FuncDef: \n",
     "        Type: ['int']   @ 3:1\n",
     "        Decl: ID(name='main'  )\n",
     "            FuncDecl: \n",
-    "                VarDecl: ID(name='main'  )\n",
+    "                VarDecl:\n",
     "                    Type: ['int']   @ 3:1\n",
     "        Compound:    @ 3:1\n",
     "            Decl: ID(name='i'  )\n",
-    "                VarDecl: ID(name='i'  )\n",
+    "                VarDecl:\n",
     "                    Type: ['int']   @ 4:3\n",
     "                ID: j   @ 4:11\n",
     "            Decl: ID(name='k'  )\n",
-    "                VarDecl: ID(name='k'  )\n",
+    "                VarDecl:\n",
     "                    Type: ['int']   @ 5:3\n",
     "                Constant: int, 3   @ 5:11\n",
     "            Decl: ID(name='p'  )\n",
-    "                VarDecl: ID(name='p'  )\n",
+    "                VarDecl:\n",
     "                    Type: ['int']   @ 6:3\n",
     "                BinaryOp: *   @ 6:11\n",
     "                    Constant: int, 2   @ 6:11\n",
@@ -824,6 +970,15 @@
    "metadata": {},
    "outputs": [],
    "source": [
+    "def _repr(obj):\n",
+    "    \"\"\"\n",
+    "    Get the representation of an object, with dedicated pprint-like format for lists.\n",
+    "    \"\"\"\n",
+    "    if isinstance(obj, list):\n",
+    "        return '[' + (',\\n '.join((_repr(e).replace('\\n', '\\n ') for e in obj))) + '\\n]'\n",
+    "    else:\n",
+    "        return repr(obj) \n",
+    "    \n",
     "class Node(object):\n",
     "    \"\"\" Abstract base class for AST nodes.\n",
     "    \"\"\"\n",
@@ -833,7 +988,7 @@
     "        result = self.__class__.__name__ + '('\n",
     "        indent = ''\n",
     "        separator = ''\n",
-    "        for name in self.__slots__[:-2]:\n",
+    "        for name in self.__slots__[:-1]:\n",
     "            result += separator\n",
     "            result += indent\n",
     "            result += name + '=' + (_repr(getattr(self, name)).replace('\\n', '\\n  ' + (' ' * (len(name) + len(self.__class__.__name__)))))\n",
@@ -882,6 +1037,59 @@
     "\n",
     "        for (child_name, child) in self.children():\n",
     "            child.show(buf, offset + 4, attrnames, nodenames, showcoord, child_name)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Dealing with line and column information in AST"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "class Coord(object):\n",
+    "    \"\"\" Coordinates of a syntactic element. Consists of:\n",
+    "            - Line number\n",
+    "            - (optional) column number, for the Lexer\n",
+    "    \"\"\"\n",
+    "    __slots__ = ('line', 'column')\n",
+    "\n",
+    "    def __init__(self, line, column=None):\n",
+    "        self.line = line\n",
+    "        self.column = column\n",
+    "\n",
+    "    def __str__(self):\n",
+    "        if self.line:\n",
+    "            coord_str = \"   @ %s:%s\" % (self.line, self.column)\n",
+    "        else:\n",
+    "            coord_str = \"\"\n",
+    "        return coord_str"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "The Coord class above should be used to store (and show in the AST) the lines and columns of the productions in the source code. To capture the coordinates for a production ```p``` of the parser indexed with ```token_idx``` use the following code in the UCParser class (the coordinate includes the ```lineno``` and the ```column```. Both follow the semantics of the lex, starting at 1):"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "    def _token_coord(self, p, token_idx):\n",
+    "        last_cr = p.lexer.lexer.lexdata.rfind('\\n', 0, p.lexpos(token_idx))\n",
+    "        if last_cr < 0:\n",
+    "            last_cr = -1\n",
+    "        column = (p.lexpos(token_idx) - (last_cr))\n",
+    "        return Coord(p.lineno(token_idx), column)"
    ]
   }
  ],
@@ -940,5 +1148,5 @@
   }
  },
  "nbformat": 4,
- "nbformat_minor": 2
+ "nbformat_minor": 4
 }
