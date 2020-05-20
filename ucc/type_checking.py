@@ -1,10 +1,13 @@
+from ast import *
+
+
 class uCType(object):
     """
     Class that represents a type in the uC language.  Types
     are declared as singleton instances of this type.
     """
 
-    def __init__(self, name, element_type=set(), unary_ops=set(), binary_ops=set(), rel_ops=set(), assign_ops=set()):
+    def __init__(self, name, unary_ops=set(), binary_ops=set(), rel_ops=set(), assign_ops=set()):
         self.typename = name
         self.unary_ops = unary_ops
         self.binary_ops = binary_ops
@@ -32,16 +35,11 @@ CharType = uCType("char",
                   rel_ops={"==", "!=", "<", ">", "<=", ">="},
                   assign_ops={"=", "+=", "-=", "*=", "/=", "%="})
 StringType = uCType("string",
-                    element_type={"char"},
                     unary_ops={"+", "&"},
                     rel_ops={"==", "!="})
 ArrayType = uCType("array",
-                   element_type={"int", "float", "char"},
                    unary_ops={"*", "&"},
                    rel_ops={"==", "!="})
-IDType = uCType("id",
-
-)
 # TODO: Complete uCTypes
 
 type_table = {
@@ -93,6 +91,7 @@ class NodeVisitor(object):
     def visit(self, node):
         """ Visit a node.
         """
+        print(">", node)
 
         if self._method_cache is None:
             self._method_cache = {}
@@ -116,20 +115,29 @@ class NodeVisitor(object):
 class SymbolTable(object):
     """
     Class representing a symbol table.  It should provide functionality
-    for adding and looking up nodes associated with identifiers.
+    for adding and looking up nodes associated with identifiers by their scopes.
     """
 
     def __init__(self):
-        self.symtab = {}
+        self.scope = -1
+        self.symtabs = []
 
     def lookup(self, a):
-        return self.symtab.get(a)
+        for i in range(self.scope, -1, -1):
+            if a in self.symtabs[i]:
+                return self.symtabs[i].get(a)
+        return None
 
-    def add(self, a, v):
-        self.symtab[a] = v
+    def put(self, a, v):
+        self.symtabs[self.scope][a] = v
 
-    def remove(self, a):
-        del self.symtab[a]
+    def begin_scope(self):
+        self.scope += 1
+        self.symtabs.append({})
+
+    def end_scope(self):
+        self.symtabs.pop()
+        self.scope -= 1
 
 
 class Visitor(NodeVisitor):
@@ -141,99 +149,172 @@ class Visitor(NodeVisitor):
 
     def __init__(self):
         # Initialize the symbol table
+        self.check_array = 0
+        self.fmap = {}
+        self.amap = {}
         self.symtab = SymbolTable()
 
-        # Add built-in type names (int, float, char) to the symbol table
-        self.symtab.add("int", IntType)
-        self.symtab.add("float", FloatType)
-        self.symtab.add("char", CharType)
-        self.symtab.add("string", StringType)
+    def type_from_id_or_const(self, look, error):
+        if isinstance(look, ID):
+            look_type = self.symtab.lookup(look.name)
+            assert look_type, error
+        elif isinstance(look, Constant):
+            look_type = look.type
+        elif isinstance(look, BinaryOp) or isinstance(look, FuncCall):
+            look_type = self.visit(look)
+        else:
+            look_type = self.visit(look)
+        return look_type
 
     def visit_Program(self, node):
         # 1. Visit all of the global declarations
-        # 2. Record the associated symbol table
-        for _decl in node.gdecls:
-            self.visit(_decl)
+        print('lets go')
+        self.symtab.begin_scope()
+        if node.gdecls is not None:
+            for _decl in node.gdecls:
+                self.visit(_decl)
+        self.symtab.end_scope()
 
     def visit_BinaryOp(self, node):
-        # 1. Make sure left and right operands have the same type
-        # 2. Make sure the operation is supported
-        # 3. Assign the result type
-        self.visit(node.lvalue)
-        self.visit(node.rvalue)
-        left, right = self.symtab.lookup(node.lvalue), self.symtab.lookup(node.rvalue)
-        assert left and right, "binary operation with unknown sym"
-        assert left.type == right.type, "Type mismatch in binary operation"
-        node.type = node.lvalue.type
-        assert node.op in type_table[node.type].binary_ops, "Operation mismatch in binary operation"
+        # Verifies if left and right element are ID or Constant
+        left = self.type_from_id_or_const(node.lvalue, 'BinaryOp error: Left element not defined')
+        right = self.type_from_id_or_const(node.rvalue, 'BinaryOp error: Right element not defined')
+
+        assert left == right, "BinaryOp error: Elements type mismatch"
+        assert node.op in type_table[left].binary_ops or node.op in type_table[left].rel_ops, \
+            "BinaryOp error: Operator mismatch"
+        return left
 
     def visit_Constant(self, node):
-        self.symtab.add(node.value, type_table[node.type])
+        return node.type
 
     def visit_Type(self, node):
-        # TODO: implement type
-        pass
+        real_type = None
+        if node.types is not None:
+            return node.types[0]
+        return real_type
 
     def visit_GlobalDecl(self, node):
         for _decl in node.decls:
             self.visit(_decl)
 
     def visit_Decl(self, node):
-        self.symtab.add(node.name, type_table[node.type])
-        self.visit(node.init)
+        if node.type is not None:
+            if isinstance(node.type, ArrayDecl):
+                node_type = self.amap[self.visit(node.type)][0]
+            elif isinstance(node.type, FuncDecl):
+                node_type = self.visit(node.type)
+            elif isinstance(node.type, VarDecl):
+                node_type = self.visit(node.type)
+            if node.init is not None:
+                init = self.visit(node.init)
+                assert node_type == init, 'Declaration error: Init type differs from declared type'
+        # assert cond, "Type mismatch in declaration operation"
 
     def visit_FuncDecl(self, node):
-        for _arg in node.args:
-            self.visit(_arg)
+        # VERIFICA SE JA TEM O NOME SENA BOTA
+        if node.type is not None and isinstance(node.type, VarDecl):
+            node_type = self.visit(node.type)
+            if node.args is not None and isinstance(node.args, ParamList):
+                self.fmap[node.type.name.name] = self.visit(node.args)
+        self.symtab.begin_scope()
+        return node_type
 
     def visit_VarDecl(self, node):
-        pass
+        name = self.visit(node.name)
+        var_type = self.visit(node.type)
+        self.symtab.put(name, var_type)
+
+        return var_type
 
     def visit_Cast(self, node):
         self.visit(node.expr)
         node.type = node.expr.type
 
     def visit_UnaryOp(self, node):
-        self.visit(node.expr)
-        node.type = node.expr.type
-        assert node.op in type_table[node.type].unary_ops, "Operation mismatch in unary operation"
+        name = self.visit(node.expr)
+        var_type = self.symtab.lookup(name)
+        assert node.op in type_table[var_type].unary_ops, "Unary operation: operator mismatch"
 
     def visit_ExprList(self, node):
         for _expr in node.exprs:
             self.visit(_expr)
 
     def visit_Assignment(self, node):
-        ## 1. Make sure the location of the assignment is defined
-        left = self.symtab.lookup(node.lvalue)
-        assert left, "Assigning to unknown sym"
-        ## 2. Check that the types match
-        self.visit(node.rvalue)
-        assert left.name == node.rvalue.type, "Type mismatch in assignment"
-        node.type = left.name
-        assert node.op in type_table[node.type].assign_ops, "Operation mismatch in assignment operation"
+        left = self.symtab.lookup(self.visit(node.lvalue))
+        assert left, "Assignment error: undefined element"
+        # If right value is variable, searchs symbol table
+        if isinstance(node.rvalue, ID) or isinstance(node.rvalue, ArrayRef):
+            right = self.symtab.lookup(self.visit(node.rvalue))
+        else:
+            right = self.visit(node.rvalue)
+        assert left == right, "Assignment error: Type mismatch"
+        assert node.op in type_table[left].assign_ops, "Assignment error: operation mismatch"
 
     def visit_FuncDef(self, node):
-        self.visit(node.decl)
+        if node.decl is not None:
+            self.visit(node.decl)
         for _decl in node.param_decls:
             self.visit(_decl)
         self.visit(node.body)
 
+        # Begin scope after function declaration to make function global
+        self.symtab.end_scope()
+
     def visit_FuncCall(self, node):
         # TODO: Count params
-        for _arg in node.args:
-            self.visit(_arg)
+        assert self.visit(node.name) in self.fmap, 'Function Call error: function not declared'
+        if isinstance(node.args, ID):
+            self.visit(node.args)
+        else:
+            print("OH NO args in FuncCall is not ID")
+        return self.symtab.lookup(self.visit(node.name))
 
     def visit_ID(self, node):
-        pass
+        return node.name
 
     def visit_ArrayDecl(self, node):
-        self.visit(node.dim)
+        name = None
+        if isinstance(node.type, VarDecl):
+            array_type = self.visit(node.type)
+            if array_type == 'char':
+                array_type = 'string'
+            else:
+                array_type = 'array'
+            name = node.type.name
+            self.symtab.put(self.visit(name), array_type)
+            self.amap[self.visit(name)] = (
+                array_type,
+                [node.dim.value if node.dim is not None and isinstance(node.dim, Constant) else None]
+            )
+        if isinstance(node.type, ArrayDecl):
+            name = self.visit(node.type)
+            array_type = self.amap[self.visit(name)][0]
+            if array_type == 'string':
+                self.symtab.put(self.visit(name), 'array')
+            self.amap[self.visit(name)][1].append(
+                node.dim.value if node.dim is not None and isinstance(node.dim, Constant) else None
+            )
+        return name
 
     def visit_ArrayRef(self, node):
-        array = self.symtab.lookup(node.name)
-        assert array, "Referencing unknown sym"
-        node.type = array.name
-        self.visit(node.subscript)
+        array = self.symtab.lookup(self.visit(node.name))
+        assert array, "Array Refence error: Array not declared"
+        # FAZER O REF PARA STRIN G E ARRAY
+        if array == 'string':
+            return 'char'
+        if array == 'array':
+            pass
+        if isinstance(node.subscript, ArrayRef):
+            cmp_type = self.visit(node.subscript)
+            assert cmp_type == 'int', "Array Refence error: Index not integer"
+        elif isinstance(node.subscript, ID):
+            cmp_type = self.symtab.lookup(self.visit(node.subscript))
+            assert cmp_type == 'int', "Array Refence error: Index not integer"
+        elif isinstance(node.subscript, Constant):
+            cmp_type = self.visit(node.subscript)
+            assert cmp_type == 'int', "Array Refence error: Index not integer"
+        return self.visit(node.name)
 
     def visit_Compound(self, node):
         for _block in node.block_items:
@@ -242,7 +323,7 @@ class Visitor(NodeVisitor):
     def visit_If(self, node):
         self.visit(node.cond)
         self.visit(node.iftrue)
-        if node.iffalse:
+        if node.iffalse is not None:
             self.visit(node.iffalse)
 
     def visit_While(self, node):
@@ -250,10 +331,12 @@ class Visitor(NodeVisitor):
         self.visit(node.stmt)
 
     def visit_For(self, node):
+        self.symtab.begin_scope()
         self.visit(node.init)
         self.visit(node.cond)
         self.visit(node.next)
         self.visit(node.stmt)
+        self.symtab.end_scope()
 
     def visit_DeclList(self, node):
         for _decl in node.decls:
@@ -266,21 +349,32 @@ class Visitor(NodeVisitor):
         self.visit(node.expr)
 
     def visit_Print(self, node):
-        self.visit(node.expr)
+        if node.expr is not None:
+            self.visit(node.expr)
 
     def visit_Read(self, node):
-        self.visit(node.expr)
+        if node.expr is not None:
+            self.visit(node.expr)
 
     def visit_InitList(self, node):
-        for _expr in node.exprs:
-            self.visit(_expr)
+        if node.exprs is not None:
+            consistency = self.type_from_id_or_const(node.exprs[0], 'InitList error: Element not defined')
+            for _expr in node.exprs:
+                verify = self.type_from_id_or_const(_expr, 'InitList error: Element not defined')
+                assert consistency == verify, 'InitList error: Type consistency'
+        else:
+            consistency = None
+        return consistency
 
     def visit_ParamList(self, node):
         for _param in node.params:
             self.visit(_param)
+        return node.params
 
     def visit_Break(self, node):
         pass
 
     def visit_Return(self, node):
-        self.visit(node.expr)
+        if node.expr is not None:
+            self.visit(node.expr)
+        print(self.symtab.symtabs, self.fmap)
